@@ -17,3 +17,11 @@ Users have 4 main options
 4. Print all students in reverse
 
 Users can also exit the program
+
+## Student data
+Each student consists of 5 attributes
+- last name
+- first name
+- id number
+- year
+- graduation year
