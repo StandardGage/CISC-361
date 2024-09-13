@@ -4,9 +4,10 @@
 This project creates a doubly linked list of student structs that can then be interacted with
 
 ## Installation and running
-Clone the repository and run `make`
+Clone the repository and run `make` or `make slist`
 - If receiving a bash error, ensure that gcc and make are installed
 - Ensure that valgrind is installed if running `make valgrind` to check for memory leaks
+- Remove the executable with `make clean`
 
 
 ## Usage
