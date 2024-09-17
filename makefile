@@ -1,13 +1,13 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -g
 
-slist: main.c student.h
-	$(CC) $(CFLAGS) -o slist main.c
+shell: main.c
+	$(CC) $(CFLAGS) -o shell main.c builtin.c
 
 .PHONY: clean
 clean:
-	rm -f slist
+	rm -f shell
 
 .PHONY: valgrind
-valgrind: slist
-	valgrind ./slist
+valgrind: shell
+	valgrind ./shell
