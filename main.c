@@ -8,7 +8,7 @@ Student *inputStudent()
     Student *student = (Student *)malloc(sizeof(Student));
     student->lastName = (char *)malloc(50);
     student->firstName = (char *)malloc(50);
-    student->year = (char *)malloc(5);
+    student->year = (char *)malloc(50);
 
     printf("\nEnter the student's last name: ");
     fgets(student->lastName, 50, stdin);
@@ -21,7 +21,7 @@ Student *inputStudent()
     getchar(); // clear the newline character
 
     printf("Enter the student's year: ");
-    fgets(student->year, 5, stdin);
+    fgets(student->year, 50, stdin);
 
     printf("Enter the student's graduation year: ");
     scanf("%d", &student->graduationYear);
