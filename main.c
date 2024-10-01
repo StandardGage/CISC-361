@@ -6,16 +6,22 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <errno.h>
+#include <readline/readline.h>
+#include <readline/history.h>
 
 #define MAXLINE 128
 #define MAXARGS 10
 #define MAX_PATH_LENGTH 1024
 
+char *command_generator(const char *text, int state);
+char **command_completion(const char *text, int start, int end);
+void initialize_readline();
+
 // parse command entered
 int main(int argc, char *argv[], char **envp)
 {
 
-    char buf[MAXLINE];
+    char *input;
     pid_t pid;
     int status;
     char *ptr;
@@ -28,34 +34,46 @@ int main(int argc, char *argv[], char **envp)
 
     background = 1;
 
+    initialize_readline();
+
     printf("Welcome to the shell!\n");
     while (1)
     {
-        printf("%s [%s]> ", prefix, cwd);
-
-        if (fgets(buf, MAXLINE, stdin) == NULL)
+        char prompt[MAXLINE];
+        if (strlen(prefix) == 0)
         {
-            clearerr(stdin);
-            printf("\n");
-            continue;
+            sprintf(prompt, "[%s]> ", cwd);
+        }
+        else
+        {
+            sprintf(prompt, "%s [%s]> ", prefix, cwd);
+        }
+        input = readline(prompt);
+        if (input == NULL)
+        {
+            printf("Exiting...\n");
+            break;
+        }
+        if (strlen(input) > 0)
+        {
+            add_history(input);
         }
 
-        if (buf[strlen(buf) - 1] == '\n')
-            buf[strlen(buf) - 1] = 0; /* replace newline with null */
-
-        if (strlen(buf) == 0)
-        {
-            continue;
-        }
+        // tokenize
         int argIndex = 0;
-        token = strtok(buf, " ");
+        token = strtok(input, " ");
         while (token != NULL && argIndex < MAXARGS - 1)
         {
-            args[argIndex] = token;
-            argIndex++;
+            args[argIndex++] = token;
             token = strtok(NULL, " ");
         }
         args[argIndex] = NULL;
+
+        if (args[0] == NULL) // empty input
+        {
+            free(input);
+            continue;
+        }
 
         if (strcmp(args[0], "exit") == 0)
         {
@@ -169,8 +187,8 @@ int main(int argc, char *argv[], char **envp)
             }
             else if (pid == 0)
             {
-                execlp(buf, buf, (char *)0);
-                printf("couldn't execute: %s\n", buf);
+                execlp(input, input, (char *)0);
+                printf("couldn't execute: %s\n", input);
                 exit(127);
             }
 
@@ -185,8 +203,66 @@ int main(int argc, char *argv[], char **envp)
             }
         }
         pid = waitpid(pid, &status, WNOHANG);
+
+        free(input);
     }
-    exit(0);
+    free(cwd);
+
+    return 0;
+}
+
+void initialize_readline()
+{
+    rl_attempted_completion_function = command_completion;
+}
+
+char **command_completion(const char *text, int start, int end)
+{
+    if (strlen(text) == 0 && start == 0)
+    {
+        rl_attempted_completion_over = 1;
+        return NULL;
+    }
+
+    if (start == 0)
+    {
+        return rl_completion_matches(text, command_generator);
+    }
+
+    return rl_completion_matches(text, rl_filename_completion_function);
+}
+
+char *command_generator(const char *text, int state)
+{
+    static int list_index, len;
+    static const char *commands[] = {
+        "printenv",
+        "exit",
+        "cd",
+        "pwd",
+        "pid",
+        "prompt",
+        "setenv",
+        "which",
+        "list",
+        NULL};
+
+    if (!state)
+    {
+        list_index = 0;
+        len = strlen(text);
+    }
+
+    const char *name;
+    while ((name = commands[list_index++]))
+    {
+        if (strncmp(name, text, len) == 0)
+        {
+            return strdup(name);
+        }
+    }
+
+    return NULL;
 }
 
 int is_executable(char *directory, char *command)
@@ -194,8 +270,8 @@ int is_executable(char *directory, char *command)
     char full_path[MAX_PATH_LENGTH];
     snprintf(full_path, sizeof(full_path), "%s/%s", directory, command);
 
-    struct stat buffer;
-    if (stat(full_path, &buffer) == 0 && buffer.st_mode & S_IXUSR)
+    struct stat inputfer;
+    if (stat(full_path, &inputfer) == 0 && inputfer.st_mode & S_IXUSR)
     {
         printf("%s\n", full_path);
         return 1;
