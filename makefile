@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -Wall -Wextra -g
 
 shell: main.c
-	$(CC) $(CFLAGS) -o shell main.c builtin.c
+	$(CC) $(CFLAGS) -o shell main.c
 
 .PHONY: clean
 clean:
