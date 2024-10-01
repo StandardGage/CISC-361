@@ -5,13 +5,14 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <errno.h>
 
 #define MAXLINE 128
 #define MAXARGS 10
 #define MAX_PATH_LENGTH 1024
 
 // parse command entered
-int main()
+int main(int argc, char *argv[], char **envp)
 {
 
     char buf[MAXLINE];
@@ -34,9 +35,9 @@ int main()
 
         if (fgets(buf, MAXLINE, stdin) == NULL)
         {
-            // Handle EOF
-            printf("exit\n");
-            break;
+            clearerr(stdin);
+            printf("\n");
+            continue;
         }
 
         if (buf[strlen(buf) - 1] == '\n')
@@ -67,17 +68,18 @@ int main()
             find_command(args[1]);
         }
         else if (strcmp(args[0], "list") == 0)
-        { 
-                if (argIndex == 1) {
-                    list_dirs(".");
-                }
-                int count = 1;
-                while (count < argIndex) {
-                    printf("\n%s:\n", args[count]);
-                    list_dirs(args[count]);
-                    count++;
-                }
-            
+        {
+            if (argIndex == 1)
+            {
+                list_dirs(".");
+            }
+            int count = 1;
+            while (count < argIndex)
+            {
+                printf("\n%s:\n", args[count]);
+                list_dirs(args[count]);
+                count++;
+            }
         }
         else if (strcmp(args[0], "pwd") == 0)
         {
@@ -93,7 +95,7 @@ int main()
             }
             if (strcmp(args[1], "-") == 0)
             {
-                chdir(strcat(cwd,"/.."));
+                chdir(strcat(cwd, "/.."));
             }
             else
             {
@@ -119,6 +121,43 @@ int main()
                 fgets(prefix, MAXLINE, stdin);
                 if (prefix[strlen(prefix) - 1] == '\n')
                     prefix[strlen(prefix) - 1] = 0; /* replace newline with null */
+            }
+        }
+        else if (strcmp(args[0], "printenv") == 0)
+        {
+            if (argIndex == 1)
+            {
+                print_env(envp);
+            }
+            else
+            {
+                int count = 1;
+                while (count < argIndex)
+                {
+                    printf("%s=%s\n", args[count], getenv(args[count]));
+                    count++;
+                }
+            }
+        }
+        else if (strcmp(args[0], "setenv") == 0)
+        {
+            if (argIndex == 1)
+            {
+                // print whole environment
+                print_env(envp);
+            }
+            else if (argIndex == 2)
+            {
+                setenv(args[1], "", 1);
+            }
+            else if (argIndex == 3)
+            {
+                setenv(args[1], args[2], 1);
+            }
+            else
+            {
+                // print to stderr
+                fprintf(stderr, "Usage: setenv [var] [value]\n");
             }
         }
         else
@@ -205,4 +244,27 @@ void list_dirs(char *directory)
     }
 
     closedir(dir);
+}
+
+void print_env(char **envp)
+{
+    if (envp != NULL)
+    {
+        for (char **env = envp; *env != 0; env++)
+        {
+            char *thisEnv = *env;
+            if (getenv(thisEnv) != NULL)
+            {
+                printf("%s=%s\n", thisEnv, getenv(thisEnv));
+            }
+            else
+            {
+                printf("No variable: %s\n", thisEnv);
+            }
+        }
+    }
+    else
+    {
+        printf("No environment variables found\n");
+    }
 }
