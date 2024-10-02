@@ -236,15 +236,15 @@ char *command_generator(const char *text, int state)
 {
     static int list_index, len;
     static const char *commands[] = {
-        "printenv",
         "exit",
-        "cd",
-        "pwd",
-        "pid",
-        "prompt",
-        "setenv",
         "which",
         "list",
+        "pwd",
+        "cd",
+        "pid",
+        "prompt",
+        "printenv",
+        "setenv",
         NULL};
 
     if (!state)

@@ -1,8 +1,9 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -g
+LFLAGS = -lreadline -lhistory
 
 shell: main.c
-	$(CC) $(CFLAGS) -o shell main.c -lreadline -lhistory
+	$(CC) $(CFLAGS) -o shell main.c $(LFLAGS)
 
 .PHONY: clean
 clean:
