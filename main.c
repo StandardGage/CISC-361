@@ -32,7 +32,7 @@ int main(int argc, char *argv[], char **envp)
 
     char prefix[MAXLINE] = "";
 
-    background = 1;
+    background = 0;
 
     initialize_readline();
 
@@ -178,6 +178,40 @@ int main(int argc, char *argv[], char **envp)
                 fprintf(stderr, "Usage: setenv [var] [value]\n");
             }
         }
+        // check if absolute path or relative path
+        else if (strchr(args[0], '/') != NULL)
+        {
+            if (access(args[0], X_OK) == 0)
+            {
+                if ((pid = fork()) < 0)
+                {
+                    printf("fork error\n");
+                    exit(1);
+                }
+                else if (pid == 0)
+                {
+                    execv(args[0], args);
+                    printf("couldn't execute: %s\n", args[0]);
+                    exit(127);
+                }
+
+                if (!background)
+                {
+                    printf("Executing %s\n", args[0]);
+                    if ((pid = waitpid(pid, &status, 0)) < 0)
+                        printf("waitpid error\n");
+                }
+                else
+                {
+                    printf("Executing %s\n", args[0]);
+                    // save pid somewhere for later
+                }
+            }
+            else
+            {
+                printf("File not found or not executable\n");
+            }
+        }
         else
         {
             if ((pid = fork()) < 0)
@@ -187,18 +221,20 @@ int main(int argc, char *argv[], char **envp)
             }
             else if (pid == 0)
             {
-                execlp(input, input, (char *)0);
-                printf("couldn't execute: %s\n", input);
+                execvp(args[0], args);
+                printf("couldn't execute: %s\n", args[0]);
                 exit(127);
             }
 
             if (!background)
             {
+                printf("Executing %s\n", args[0]);
                 if ((pid = waitpid(pid, &status, 0)) < 0)
                     printf("waitpid error\n");
             }
             else
             {
+                printf("Executing %s\n", args[0]);
                 // save pid somewhere for later
             }
         }
