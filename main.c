@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <glob.h>
 
 #define MAXLINE 128
 #define MAXARGS 10
@@ -77,19 +78,22 @@ int main(int argc, char *argv[], char **envp)
 
         if (strcmp(args[0], "exit") == 0)
         {
+            printf("Executing built-in exit\n");
             int status = argIndex > 1 ? atoi(args[1]) : 0;
             printf("Exiting, status: %d\n", status);
             exit(status);
         }
         else if (strcmp(args[0], "which") == 0)
         {
+            printf("Executing built-in which\n");
             find_command(args[1]);
         }
         else if (strcmp(args[0], "list") == 0)
         {
+            printf("Executing built-in list\n");
             if (argIndex == 1)
             {
-                list_dirs(".");
+                list_dirs("*");
             }
             int count = 1;
             while (count < argIndex)
@@ -101,12 +105,14 @@ int main(int argc, char *argv[], char **envp)
         }
         else if (strcmp(args[0], "pwd") == 0)
         {
+            printf("Executing built-in pwd\n");
             ptr = getcwd(NULL, 0);
             printf("CWD = [%s]\n", ptr);
             free(ptr);
         }
         else if (strcmp(args[0], "cd") == 0)
         {
+            printf("Executing built-in cd\n");
             if (argIndex == 1)
             {
                 chdir(getenv("HOME"));
@@ -123,10 +129,12 @@ int main(int argc, char *argv[], char **envp)
         }
         else if (strcmp(args[0], "pid") == 0)
         {
+            printf("Executing built-in pid\n");
             printf("PID: %d\n", getpid());
         }
         else if (strcmp(args[0], "prompt") == 0)
         {
+            printf("Executing built-in prompt\n");
             if (argIndex == 2)
             {
                 strcpy(prefix, args[1]);
@@ -143,6 +151,7 @@ int main(int argc, char *argv[], char **envp)
         }
         else if (strcmp(args[0], "printenv") == 0)
         {
+            printf("Executing built-in printenv\n");
             if (argIndex == 1)
             {
                 print_env(envp);
@@ -159,6 +168,7 @@ int main(int argc, char *argv[], char **envp)
         }
         else if (strcmp(args[0], "setenv") == 0)
         {
+            printf("Executing built-in setenv\n");
             if (argIndex == 1)
             {
                 // print whole environment
@@ -344,18 +354,22 @@ void find_command(char *command)
     printf("%s: Command not found\n", command);
 }
 
-void list_dirs(char *directory)
+void list_dirs(const char *pattern)
 {
-    DIR *dir;
-    struct dirent *entry;
-    dir = opendir(directory);
-
-    while ((entry = readdir(dir)) != NULL)
+    glob_t results;
+    int ret = glob(pattern, 0, NULL, &results);
+    if (ret == 0)
     {
-        printf("%s\n", entry->d_name);
+        for (size_t i = 0; i < results.gl_pathc; i++)
+        {
+            printf("%s\n", results.gl_pathv[i]);
+        }
     }
-
-    closedir(dir);
+    else
+    {
+        printf("No matches found for pattern: %s\n", pattern);
+    }
+    globfree(&results);
 }
 
 void print_env(char **envp)
