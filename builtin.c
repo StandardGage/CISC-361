@@ -25,7 +25,15 @@ int run_builtin(char **args, int argIndex, char **envp)
     else if (strcmp(args[0], "which") == 0) // which command
     {
         printf("Executing built-in which\n");
-        printf("%s\n", search_executable(args[1]));
+        if (argIndex < 2)
+        {
+            fprintf(stderr, "Usage: which [command]\n");
+            return 0;
+        } else {
+            for (int i = 1; i < argIndex; i++) {
+                printf("%s\n", search_executable(args[i]));
+            }
+        }
         return 0;
     }
     else if (strcmp(args[0], "list") == 0) // list command

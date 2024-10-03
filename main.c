@@ -109,15 +109,28 @@ int main(int argc, char *argv[], char **envp)
             printf("Executing built-in cd\n");
             if (argIndex == 1)
             {
-                chdir(getenv("HOME"));
+                if (chdir(getenv("HOME")) == -1)
+                {
+                    perror("cd");
+                }
             }
-            if (strcmp(args[1], "-") == 0)
+            else if (argIndex > 2)
             {
-                chdir(strcat(cwd, "/.."));
+                printf("Too many arguments\n");
+            }
+            else if (strcmp(args[1], "-") == 0)
+            {
+                if (chdir(strcat(cwd, "/..")) == -1)
+                {
+                    perror("cd");
+                }
             }
             else
             {
-                chdir(args[1]);
+                if (chdir(args[1]) == -1)
+                {
+                    perror("cd");
+                }
             }
             cwd = getcwd(NULL, 0);
         }
