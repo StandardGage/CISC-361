@@ -83,10 +83,13 @@ int main(int argc, char *argv[], char **envp)
     initialize_readline();
     setup_signal_handlers();
 
-    printf("Welcome to the shell!\n");
+    const char *color_start = "\033[1;32m"; // Green color
+    const char *color_end = "\033[0m";      // Reset color
+
+    printf("Welcome to the Gage Shell!\n");
     while (1)
     {
-        size_t prompt_size = strlen(prefix) + strlen(cwd) + 6; // 4 for spaces and 1 for null
+        size_t prompt_size = strlen(prefix) + strlen(cwd) + strlen(color_start) + strlen(color_end) + 6; // 4 for spaces and 1 for null
         char *prompt = malloc(prompt_size);
         if (prompt == NULL)
         {
@@ -95,11 +98,11 @@ int main(int argc, char *argv[], char **envp)
         }
         if (strlen(prefix) == 0)
         {
-            snprintf(prompt, prompt_size, "[%s]> ", cwd);
+            snprintf(prompt, prompt_size, "%s[%s]> %s", color_start, cwd, color_end);
         }
         else
         {
-            snprintf(prompt, prompt_size, "%s [%s]> ", prefix, cwd);
+            snprintf(prompt, prompt_size, "%s%s [%s]> %s", color_start, prefix, cwd, color_end);
         }
         input = readline(prompt);
         free(prompt);
