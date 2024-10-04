@@ -10,9 +10,13 @@
 #include <readline/history.h>
 #include <glob.h>
 
+#include "builtin.h"
+
 #define MAXLINE 128
 #define MAXARGS 10
 #define MAX_PATH_LENGTH 1024
+
+int last_exit_status = 0;
 
 static const char *commands[] = {
     "exit",
@@ -30,10 +34,41 @@ char *command_generator(const char *text, int state);
 char **command_completion(const char *text, int start, int end);
 void initialize_readline();
 
+void setup_signal_handlers()
+{
+    struct sigaction sa;
+
+    // Ignore SIGINT (Ctrl-C)
+    sa.sa_handler = SIG_IGN;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    if (sigaction(SIGINT, &sa, NULL) == -1)
+    {
+        perror("sigaction");
+        exit(1);
+    }
+
+    // Ignore SIGTSTP (Ctrl-Z)
+    if (sigaction(SIGTSTP, &sa, NULL) == -1)
+    {
+        perror("sigaction");
+        exit(1);
+    }
+
+    // Ignore SIGTERM
+    if (sigaction(SIGTERM, &sa, NULL) == -1)
+    {
+        perror("sigaction");
+        exit(1);
+    }
+}
+
 // parse command entered
 int main(int argc, char *argv[], char **envp)
 {
 
+    (void)argc;
+    (void)argv;
     char *input;
     pid_t pid;
     int status;
@@ -46,24 +81,33 @@ int main(int argc, char *argv[], char **envp)
     background = 0;
 
     initialize_readline();
+    setup_signal_handlers();
 
     printf("Welcome to the shell!\n");
     while (1)
     {
-        char prompt[MAXLINE];
+        size_t prompt_size = strlen(prefix) + strlen(cwd) + 6; // 4 for spaces and 1 for null
+        char *prompt = malloc(prompt_size);
+        if (prompt == NULL)
+        {
+            perror("malloc");
+            exit(1);
+        }
         if (strlen(prefix) == 0)
         {
-            sprintf(prompt, "[%s]> ", cwd);
+            snprintf(prompt, prompt_size, "[%s]> ", cwd);
         }
         else
         {
-            sprintf(prompt, "%s [%s]> ", prefix, cwd);
+            snprintf(prompt, prompt_size, "%s [%s]> ", prefix, cwd);
         }
         input = readline(prompt);
+        free(prompt);
+
         if (input == NULL)
         {
-            printf("Exiting...\n");
-            break;
+            printf("\n");
+            continue;
         }
         if (strlen(input) > 0)
         {
@@ -76,7 +120,17 @@ int main(int argc, char *argv[], char **envp)
         glob_t glob_result;
         while (token != NULL && argIndex < MAXARGS - 1)
         {
-            if (glob(token, GLOB_NOCHECK | GLOB_TILDE, NULL, &glob_result) == 0)
+            if (strcmp(token, "$?") == 0) // fix $? to last exit status
+            {
+                char *status_str = malloc(4);
+                sprintf(status_str, "%d", last_exit_status);
+                args[argIndex++] = status_str;
+            }
+            // else if (strcmp(token, "&") == 0)
+            // {
+            //     background = 1;
+            // }
+            else if (glob(token, GLOB_NOCHECK | GLOB_TILDE, NULL, &glob_result) == 0)
             {
                 for (size_t i = 0; i < glob_result.gl_pathc; i++)
                 {
@@ -102,6 +156,10 @@ int main(int argc, char *argv[], char **envp)
         if (run_builtin(args, argIndex, envp) == 0)
         {
             free(input);
+            for (int i = 0; i < argIndex; i++)
+            {
+                free(args[i]);
+            }
             continue;
         }
         else if (strcmp(args[0], "cd") == 0) // cd command needed here to update cwd
@@ -120,10 +178,18 @@ int main(int argc, char *argv[], char **envp)
             }
             else if (strcmp(args[1], "-") == 0)
             {
-                if (chdir(strcat(cwd, "/..")) == -1)
+                char *parent_dir = malloc(strlen(cwd) + 4); // Allocate enough space for cwd + "/.."
+                if (parent_dir == NULL)
+                {
+                    perror("malloc");
+                    continue;
+                }
+                snprintf(parent_dir, strlen(cwd) + 4, "%s/..", cwd);
+                if (chdir(parent_dir) == -1)
                 {
                     perror("cd");
                 }
+                free(parent_dir);
             }
             else
             {
@@ -132,6 +198,7 @@ int main(int argc, char *argv[], char **envp)
                     perror("cd");
                 }
             }
+            free(cwd); // free old cwd
             cwd = getcwd(NULL, 0);
         }
         else if (strcmp(args[0], "prompt") == 0) // prompt command needed here to update prompt/prefix
@@ -164,7 +231,7 @@ int main(int argc, char *argv[], char **envp)
                 else if (pid == 0)
                 {
                     execv(args[0], args);
-                    printf("couldn't execute: %s\n", args[0]);
+                    printf("%s: Command not found.\n", args[0]);
                     exit(127);
                 }
 
@@ -173,6 +240,14 @@ int main(int argc, char *argv[], char **envp)
                     printf("Executing %s\n", args[0]);
                     if ((pid = waitpid(pid, &status, 0)) < 0)
                         printf("waitpid error\n");
+                    else
+                    {
+                        last_exit_status = WEXITSTATUS(status);
+                        if (last_exit_status != 0)
+                        {
+                            printf("Process exited with status %d\n", last_exit_status);
+                        }
+                    }
                 }
                 else
                 {
@@ -195,7 +270,7 @@ int main(int argc, char *argv[], char **envp)
             else if (pid == 0)
             {
                 execvp(args[0], args);
-                printf("couldn't execute: %s\n", args[0]);
+                printf("%s: Command not found.\n", args[0]);
                 exit(127);
             }
 
@@ -204,6 +279,14 @@ int main(int argc, char *argv[], char **envp)
                 printf("Executing %s\n", args[0]);
                 if ((pid = waitpid(pid, &status, 0)) < 0)
                     printf("waitpid error\n");
+                else
+                {
+                    last_exit_status = WEXITSTATUS(status);
+                    if (last_exit_status != 0)
+                    {
+                        printf("Process exited with status %d\n", last_exit_status);
+                    }
+                }
             }
             else
             {
@@ -211,8 +294,10 @@ int main(int argc, char *argv[], char **envp)
                 // save pid somewhere for later
             }
         }
-        pid = waitpid(pid, &status, WNOHANG);
-
+        for (int i = 0; i < argIndex; i++)
+        {
+            free(args[i]);
+        }
         free(input);
     }
     free(cwd);
@@ -227,6 +312,7 @@ void initialize_readline()
 
 char **command_completion(const char *text, int start, int end)
 {
+    (void)end;
     if (strlen(text) == 0 && start == 0)
     {
         rl_attempted_completion_over = 1;

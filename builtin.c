@@ -13,7 +13,6 @@
 int run_builtin(char **args, int argIndex, char **envp)
 {
     char *ptr;
-    char *cwd = getcwd(NULL, 0);
 
     if (strcmp(args[0], "exit") == 0) // exit command
     {
@@ -30,8 +29,18 @@ int run_builtin(char **args, int argIndex, char **envp)
             fprintf(stderr, "Usage: which [command]\n");
             return 0;
         } else {
-            for (int i = 1; i < argIndex; i++) {
-                printf("%s\n", search_executable(args[i]));
+            for (int i = 1; i < argIndex; i++)
+            {
+                char *result = search_executable(args[i]);
+                if (result)
+                {
+                    printf("%s\n", result);
+                    free(result); // Free the result of search_executable
+                }
+                else
+                {
+                    printf("%s not found\n", args[i]);
+                }
             }
         }
         return 0;
@@ -120,7 +129,7 @@ void list_files(char *dir) // list files in a directory
     dp = opendir(dir);
     if (dp != NULL)
     {
-        while (ep = readdir(dp))
+        while ((ep = readdir(dp)))
         {
             printf("%s\n", ep->d_name);
         }
@@ -146,7 +155,7 @@ void print_env(char **envp) // print environment variables
                 *value = '\0'; // Null-terminate the key
                 value++;       // Move to the value part
 
-                // Print the environment variable
+                
                 printf("%s=%s\n", key, getenv(key));
             }
             else
@@ -184,7 +193,7 @@ char *search_executable(const char *command)
 
     while (directory != NULL)
     {
-        // Construct the full path to the command
+        
         snprintf(full_path, sizeof(full_path), "%s/%s", directory, command);
 
         // Check if the file exists and is executable
