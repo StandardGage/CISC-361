@@ -6,6 +6,7 @@ This project consists of a custom shell that employs many of the features of a r
 ## Installation and running
 Clone the repository and run `make` or `make dest`
 - If receiving a bash error, ensure that gcc and make are installed
+- If receiving an error for readline, ensure that readline-dev is installed
 - Ensure that valgrind is installed if running `make dest` to check for memory leaks
 - Can also build and run with valgrind using `make valgrind`
 - Remove the executable with `make clean`
