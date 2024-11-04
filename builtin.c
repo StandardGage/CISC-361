@@ -13,22 +13,31 @@
 int run_builtin(char **args, int argIndex, char **envp)
 {
     char *ptr;
+    char *noecho = getenv("NOECHO");
 
     if (strcmp(args[0], "exit") == 0) // exit command
     {
-        printf("Executing built-in exit\n");
+        if (!noecho || strlen(noecho) == 0)
+        {
+            printf("Executing built-in exit\n");
+        }
         int status = argIndex > 1 ? atoi(args[1]) : 0;
         printf("Exiting, status: %d\n", status);
         exit(status);
     }
     else if (strcmp(args[0], "which") == 0) // which command
     {
-        printf("Executing built-in which\n");
+        if (!noecho || strlen(noecho) == 0)
+        {
+            printf("Executing built-in which\n");
+        }
         if (argIndex < 2)
         {
             fprintf(stderr, "Usage: which [command]\n");
             return 0;
-        } else {
+        }
+        else
+        {
             for (int i = 1; i < argIndex; i++)
             {
                 char *result = search_executable(args[i]);
@@ -47,7 +56,10 @@ int run_builtin(char **args, int argIndex, char **envp)
     }
     else if (strcmp(args[0], "list") == 0) // list command
     {
-        printf("Executing built-in list\n");
+        if (!noecho || strlen(noecho) == 0)
+        {
+            printf("Executing built-in list\n");
+        }
         if (argIndex == 1)
         {
             list_files(".");
@@ -63,7 +75,10 @@ int run_builtin(char **args, int argIndex, char **envp)
     }
     else if (strcmp(args[0], "pwd") == 0) // pwd command
     {
-        printf("Executing built-in pwd\n");
+        if (!noecho || strlen(noecho) == 0)
+        {
+            printf("Executing built-in pwd\n");
+        }
         ptr = getcwd(NULL, 0); // user might use non-builtin cd
         printf("%s\n", ptr);
         free(ptr);
@@ -71,13 +86,19 @@ int run_builtin(char **args, int argIndex, char **envp)
     }
     else if (strcmp(args[0], "pid") == 0) // pid command
     {
-        printf("Executing built-in pid\n");
+        if (!noecho || strlen(noecho) == 0)
+        {
+            printf("Executing built-in pid\n");
+        }
         printf("PID: %d\n", getpid());
         return 0;
     }
     else if (strcmp(args[0], "printenv") == 0) // printenv command
     {
-        printf("Executing built-in printenv\n");
+        if (!noecho || strlen(noecho) == 0)
+        {
+            printf("Executing built-in printenv\n");
+        }
         if (argIndex == 1)
         {
             print_env(envp);
@@ -95,7 +116,10 @@ int run_builtin(char **args, int argIndex, char **envp)
     }
     else if (strcmp(args[0], "setenv") == 0)
     {
-        printf("Executing built-in setenv\n");
+        if (!noecho || strlen(noecho) == 0)
+        {
+            printf("Executing built-in setenv\n");
+        }
         if (argIndex == 1)
         {
             // print whole environment
@@ -114,6 +138,34 @@ int run_builtin(char **args, int argIndex, char **envp)
             // print to stderr
             fprintf(stderr, "Usage: setenv [var] [value]\n");
         }
+        return 0;
+    }
+    else if (strcmp(args[0], "addacc") == 0)
+    {
+        if (!noecho || strlen(noecho) == 0)
+        {
+            printf("Executing built-in addacc\n");
+        }
+        char *acc_value_str = getenv("ACC");
+        int acc_value = 0;
+        if (acc_value_str != NULL)
+        {
+            acc_value = atoi(acc_value_str);
+        }
+
+        int add_value = 1;
+        if (argIndex > 1)
+        {
+            add_value = atoi(args[1]);
+        }
+
+        int new_acc_value = acc_value + add_value;
+
+        char new_acc_str[20];
+        sprintf(new_acc_str, "%d", new_acc_value);
+
+        setenv("ACC", new_acc_str, 1);
+
         return 0;
     }
     else
@@ -155,7 +207,6 @@ void print_env(char **envp) // print environment variables
                 *value = '\0'; // Null-terminate the key
                 value++;       // Move to the value part
 
-                
                 printf("%s=%s\n", key, getenv(key));
             }
             else
@@ -193,7 +244,7 @@ char *search_executable(const char *command)
 
     while (directory != NULL)
     {
-        
+
         snprintf(full_path, sizeof(full_path), "%s/%s", directory, command);
 
         // Check if the file exists and is executable
