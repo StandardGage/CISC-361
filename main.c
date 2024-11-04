@@ -83,6 +83,46 @@ int main(int argc, char *argv[], char **envp)
     initialize_readline();
     setup_signal_handlers();
 
+    if (argc > 1)
+    {
+        FILE *input = stdin;
+        input = fopen(argv[1], "r");
+        if (input == NULL)
+        {
+            perror("fopen");
+            exit(1);
+        }
+        char line[MAXLINE];
+        while (fgets(line, sizeof(line), input))
+        {
+            if (input != stdin && strncmp(line, "prompt", 6) == 0)
+            {
+                continue;
+            }
+
+            args[0] = strtok(line, " \n");
+            int argIndex = 1;
+            while ((args[argIndex] = strtok(NULL, " \n")) != NULL)
+            {
+                argIndex++;
+            }
+
+            if (run_builtin(args, argIndex, envp) == 0)
+            {
+                continue;
+            }
+
+
+            if (strncmp(line, "exit", 4) == 0)
+            {
+                break;
+            }
+        }
+
+        fclose(input);
+        return last_exit_status;
+    }
+
     const char *color_start = "\033[1;32m"; // Green color
     const char *color_end = "\033[0m";      // Reset color
 
