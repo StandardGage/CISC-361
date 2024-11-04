@@ -10,7 +10,9 @@
 
 #define MAX_PATH_LENGTH 1024
 
-int run_builtin(char **args, int argIndex, char **envp)
+extern char **environ;
+
+int run_builtin(char **args, int argIndex)
 {
     char *ptr;
     char *noecho = getenv("NOECHO");
@@ -101,7 +103,7 @@ int run_builtin(char **args, int argIndex, char **envp)
         }
         if (argIndex == 1)
         {
-            print_env(envp);
+            print_env(environ);
         }
         else
         {
@@ -123,7 +125,7 @@ int run_builtin(char **args, int argIndex, char **envp)
         if (argIndex == 1)
         {
             // print whole environment
-            print_env(envp);
+            print_env(environ);
         }
         else if (argIndex == 2)
         {
@@ -147,22 +149,23 @@ int run_builtin(char **args, int argIndex, char **envp)
             printf("Executing built-in addacc\n");
         }
         char *acc_value_str = getenv("ACC");
+        printf("ACC: %s\n", acc_value_str);
         int acc_value = 0;
         if (acc_value_str != NULL)
         {
             acc_value = atoi(acc_value_str);
         }
-
-        int add_value = 1;
         if (argIndex > 1)
         {
-            add_value = atoi(args[1]);
+            int add_value = atoi(args[1]);
+            acc_value += add_value;
+        }
+        else {
+            acc_value++;
         }
 
-        int new_acc_value = acc_value + add_value;
-
-        char new_acc_str[20];
-        sprintf(new_acc_str, "%d", new_acc_value);
+        char new_acc_str[10];
+        sprintf(new_acc_str, "%d", acc_value);
 
         setenv("ACC", new_acc_str, 1);
 
@@ -193,11 +196,11 @@ void list_files(char *dir) // list files in a directory
     }
 }
 
-void print_env(char **envp) // print environment variables
+void print_env() // print environment variables
 {
-    if (envp != NULL)
+    if (environ != NULL)
     {
-        for (char **current = envp; *current != NULL; current++)
+        for (char **current = environ; *current != NULL; current++)
         {
             // Split the string at the '=' character
             char *key = strdup(*current);

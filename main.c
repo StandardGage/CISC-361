@@ -16,6 +16,8 @@
 #define MAXARGS 10
 #define MAX_PATH_LENGTH 1024
 
+extern char **environ;
+
 int last_exit_status = 0;
 char *cwd = NULL;
 char prefix[MAXLINE] = "";
@@ -68,7 +70,7 @@ void setup_signal_handlers()
 }
 
 // Function to execute a single command line
-int execute_command(char *line, char **envp)
+int execute_command(char *line)
 {
     // check for conditional execution
     int conditional = 0;
@@ -95,6 +97,11 @@ int execute_command(char *line, char **envp)
     token = strtok(line, " ");
     while (token != NULL && argIndex < MAXARGS - 1)
     {
+        // check for trailing white space
+        char *end = token + strlen(token) - 1;
+        while (end > token && isspace((unsigned char)*end))
+            end--;
+        end[1] = '\0';
         if (strcmp(token, "&") == 0)
         {
             background = 1;
@@ -111,7 +118,7 @@ int execute_command(char *line, char **envp)
         }
         else if (token[0] == '$') // Handle variable substitution
         {
-
+            
             char *var_name = token + 1; // Skip the '$'
             char *value = getenv(var_name);
             if (value == NULL)
@@ -143,7 +150,7 @@ int execute_command(char *line, char **envp)
 
     char *noecho = getenv("NOECHO");
     // Check if it's a built-in command
-    if (run_builtin(args, argIndex, envp) == 0)
+    if (run_builtin(args, argIndex) == 0)
     {
         for (int i = 0; i < argIndex; i++)
         {
@@ -360,7 +367,7 @@ char *command_generator(const char *text, int state)
     return NULL;
 }
 
-int main(int argc, char *argv[], char **envp)
+int main(int argc, char *argv[])
 {
     char *input;
 
@@ -369,9 +376,12 @@ int main(int argc, char *argv[], char **envp)
 
     shell_name = argv[0];
 
-    if (getenv("ACC") == NULL)
+    char *acc_value = getenv("ACC");
+    if (getenv("ACC") == NULL || strlen(acc_value) == 0)
     {
         setenv("ACC", "0", 1);
+        acc_value = getenv("ACC");
+        //envp = environ;
     }
 
     cwd = getcwd(NULL, 0);
@@ -409,6 +419,7 @@ int main(int argc, char *argv[], char **envp)
             // Remove trailing newline
             line[strcspn(line, "\n")] = '\0';
 
+
             if (strlen(line) == 0)
                 continue;
 
@@ -418,7 +429,7 @@ int main(int argc, char *argv[], char **envp)
             }
 
             // printf("Executing: %s\n", line);
-            int ret = execute_command(line, envp);
+            int ret = execute_command(line);
             if (ret == 1) // Exit command received
                 break;
         }
@@ -464,7 +475,7 @@ int main(int argc, char *argv[], char **envp)
             add_history(input);
         }
 
-        int ret = execute_command(input, envp);
+        int ret = execute_command(input);
         free(input);
         if (ret == 1) // Exit command received
             break;
