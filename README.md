@@ -26,5 +26,6 @@ Clone the repository and run `make` or `make dest`
 9. setenv
 
 - The shell can also run any commands or executables that are already on your machine and will even make use of your system's PATH
-- The shell also includes *autocomplete* for commands and files
+- The shell also includes *autocomplete* for commands and files and *history* for previous commands
+- The shell can also be ran with a batch script argument to run a series of commands from a file
 
