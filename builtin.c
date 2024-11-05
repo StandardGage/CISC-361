@@ -149,7 +149,6 @@ int run_builtin(char **args, int argIndex)
             printf("Executing built-in addacc\n");
         }
         char *acc_value_str = getenv("ACC");
-        printf("ACC: %s\n", acc_value_str);
         int acc_value = 0;
         if (acc_value_str != NULL)
         {
